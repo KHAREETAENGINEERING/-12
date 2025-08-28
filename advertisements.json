@@ -410,5 +410,18 @@
     "elevator": "yes",
     "kitchen": "yes",
     "balcony": "yes"
+  },
+  {
+    "id": 25252,
+    "title": "",
+    "type": "",
+    "tx": "sale",
+    "area": "",
+    "price": 0,
+    "lat": 0,
+    "lon": 0,
+    "phone": "",
+    "images": [],
+    "createdAt": 1756404467941
   }
 ]
