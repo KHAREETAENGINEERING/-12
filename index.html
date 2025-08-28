@@ -1,0 +1,945 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>عقار - عمّان | نسخة موبايل احترافية</title>
+
+<!-- Tailwind -->
+ <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/swiper/swiper-bundle.min.css" />
+<script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+<script src="https://unpkg.com/swiper/swiper-bundle.min.js"></script>
+
+<script src="https://cdn.tailwindcss.com"></script>
+<!-- Leaflet -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<!-- MarkerCluster -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet.markercluster@1.5.3/dist/MarkerCluster.Default.css" />
+<script src="https://unpkg.com/leaflet.markercluster@1.5.3/dist/leaflet.markercluster.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.css" />
+<script src="https://cdn.jsdelivr.net/npm/swiper/swiper-bundle.min.js"></script>
+
+
+
+<style>
+  html, body {height: 100%; margin: 0;}
+  #map {position: fixed; inset: 0;}
+
+  /* ========= ماركر السعر (أصغر وأوضح) ========= */
+  .leaflet-div-icon { background: transparent; border: none; }
+  .price-pin { position: relative; display:inline-flex; align-items:center; gap:6px; padding:4px 8px; border-radius:999px; color:#0b1020; font-weight:800; font-size:12px; background:#fff; border:1px solid rgba(2,6,23,.08); box-shadow:0 6px 22px rgba(2,6,23,.14); }
+  .price-pin .dot { width:8px; height:8px; border-radius:999px; }
+  .price-pin.sale .dot { background:#0ea5e9; }
+  .price-pin.rent .dot { background:#10b981; }
+  .price-pin .val { direction:ltr; }
+  .price-pin:after{ content:""; position:absolute; left:50%; bottom:-7px; transform:translateX(-50%); width:10px; height:10px; background:#fff; border-left:1px solid rgba(2,6,23,.08); border-bottom:1px solid rgba(2,6,23,.08); transform: translateX(-50%) rotate(45deg); }
+
+  /* ========= عنقود ========= */
+  .marker-cluster-small, .marker-cluster-medium, .marker-cluster-large { background: transparent; }
+  .marker-cluster div { background:#111827; color:#fff; border-radius:999px; padding:6px 10px; font-weight:800; box-shadow:0 4px 14px rgba(0,0,0,.18); border:2px solid rgba(255,255,255,.85); font-size:12px; }
+
+  /* ========= Popup أعلى كل الطبقات ========= */
+  .leaflet-pane.leaflet-popup-pane { z-index: 900 !important; }
+  .leaflet-popup-content-wrapper { border-radius:16px; box-shadow:0 20px 70px rgba(2,6,23,.18); border:1px solid rgba(2,6,23,.06); }
+  .leaflet-popup-tip { display:none; }
+/* =================== البوب اب =================== */
+.leaflet-popup {
+  z-index: 9999 !important; /* فوق كل شيء */
+}
+.leaflet-popup-content-wrapper {
+  width: 280px;  /* حجم ثابت للبوب اب */
+  max-width: 90vw;
+  padding: 8px;
+  border-radius: 10px;
+  z-index: 9999 !important;
+}
+.leaflet-popup-content {
+  margin: 0;
+  padding: 0;
+  font-size: 13px; /* حجم الخط الافتراضي */
+}
+
+/* =================== الصور كسلايدر =================== */
+.popup-images {
+  display: flex;
+  overflow-x: auto;
+  gap: 5px;
+  scroll-snap-type: x mandatory;
+}
+.popup-images img {
+  flex: 0 0 auto;
+  width: 100%;
+  max-width: 260px;
+  height: 150px;
+  object-fit: cover;
+  border-radius: 8px;
+  scroll-snap-align: start;
+}
+
+/* إزالة scrollbar الافتراضي على الهواتف */
+.popup-images::-webkit-scrollbar {
+  display: none;
+}
+
+/* =================== استجابة الهاتف =================== */
+@media (max-width: 420px) {
+  .leaflet-popup-content-wrapper {
+    width: 220px;
+    max-width: 85vw;
+    padding: 6px;
+  }
+  .leaflet-popup-content {
+    font-size: 11px;
+  }
+  .popup-images img {
+    height: 100px;
+  }
+  .popup-images {
+    gap: 3px;
+  }
+  /* تصغير الأزرار/icons */
+  .popup-content a, .popup-content button {
+    font-size: 11px;
+    padding: 4px 6px;
+  }
+}
+
+/* =================== العناصر العلوية =================== */
+.floating-top {
+  position: fixed;
+  left: 10px;
+  right: 10px;
+  top: 10px;
+  z-index: 1000;  /* أقل من البوب اب */
+}
+.glass { backdrop-filter: blur(8px); background: rgba(255,255,255,.86); box-shadow: 0 8px 30px rgba(2,6,23,.08); }
+.pill { border-radius: 999px; padding: 6px 10px; border:1px solid #e5e7eb; background:#fff; font-size:12px; }
+.pill.active { border-color:#0ea5e9; color:#0ea5e9; font-weight:800; }
+.ctrl { box-shadow: 0 6px 20px rgba(2,6,23,.10); }
+
+  /* ========= شيت سفلي ========= */
+  .sheet { position: fixed; left:0; right:0; bottom:0; background:#3cffae; border-radius:20px 20px 0 0; box-shadow: 0 -10px 40px rgba(2,6,23,.15); transition: transform .25s ease; will-change: transform; }
+  .sheet.collapsed { transform: translateY(calc(100% - 92px)); }
+  .sheet.mid { transform: translateY(42%); }
+  .sheet.expanded { transform: translateY(0%); }
+  .grabber { width:44px; height:5px; background:#77797e; border-radius:999px; margin:6px auto 10px; }
+  .safe-top { padding-top: env(safe-area-inset-top); }
+  .safe-bottom { padding-bottom: calc(12px + env(safe-area-inset-bottom)); }
+
+  /* ========= عناصر علوية ========= */
+  .floating-top { position: fixed; left:10px; right:10px; top:10px; z-index: 800; }
+  .glass { backdrop-filter: blur(8px); background: rgba(255,255,255,.86); box-shadow: 0 8px 30px rgba(2,6,23,.08); }
+  .pill { border-radius: 999px; padding: 6px 10px; border:1px solid #e5e7eb; background:#fff; font-size:12px; }
+  .pill.active { border-color:#0ea5e9; color:#0ea5e9; font-weight:800; }
+  .ctrl { box-shadow: 0 6px 20px rgba(2,6,23,.10); }
+
+  /* ========= زر المدير يطفو أسفل اليمين ========= */
+  .fab { position:fixed; right:14px; bottom:90px; z-index:820; }
+  
+</style>
+</head>
+<body class="bg-slate-50">
+
+<!-- الخريطة -->
+<div id="map" role="application" aria-label="خريطة عقارات عمّان"></div>
+
+<!-- عناصر علوية (بحث + فلاتر + تبديل طبقة) -->
+<div class="floating-top safe-top">
+  <div class="glass rounded-2xl px-3 py-2 ctrl">
+    <div class="flex items-center gap-2">
+      <button id="btnBackToCity" class="pill text-xs">عمّان</button>
+      <div class="flex-1 flex items-center gap-2">
+        <input id="q" class="flex-1 bg-white rounded-xl px-3 py-2 text-sm border focus:outline-none" placeholder="ابحث: حي، عنوان، كلمة…" />
+        <button id="btnSearch" class="pill">بحث</button>
+      </div>
+      <button id="btnBasemap" class="pill" title="تبديل الخريطة">🗺️</button>
+    </div>
+    <div class="mt-2 flex items-center gap-2 overflow-x-auto">
+      <button id="fType" class="pill">الكل</button>
+      <button id="fSale" class="pill">للبيع</button>
+      <button id="fRent" class="pill">للإيجار</button>
+      <button id="fArea" class="pill">المنطقة</button>
+      <button id="fPrice" class="pill">السعر</button>
+      <button id="fMore" class="pill">المزيد</button>
+    </div>
+  </div>
+</div>
+
+<!-- زر المدير العائم -->
+<button id="btnAdmin" class="fab rounded-full px-4 py-3 bg-slate-900 text-white shadow-xl text-sm font-bold flex items-center gap-2">
+  <span>المدير</span>
+  
+</button>
+
+<!-- شيت سفلي: قائمة النتائج -->
+<div id="sheet" class="sheet collapsed" style="z-index: 810;">
+  <div class="safe-bottom px-4">
+    <div class="grabber"></div>
+    <div class="flex items-center justify-between">
+      <div class="text-xs text-slate-500">النتائج ضمن نطاق الخريطة: <span id="count" class="font-bold text-slate-900">0</span></div>
+      <div class="flex items-center gap-2">
+        <select id="sort" class="text-xs border rounded-lg px-2 py-1">
+          <option value="recent">الأحدث</option>
+          <option value="low">السعر ↑</option>
+          <option value="high">السعر ↓</option>
+        </select>
+        <button id="btnRefresh" class="text-blue-600 text-xs">تحديث</button>
+      </div>
+    </div>
+    <div id="list" class="mt-3 space-y-3 pb-6"></div>
+  </div>
+</div>
+
+<!-- حوارات عامة (فلترة + مدير) -->
+<div id="modal" class="fixed inset-0 hidden items-end justify-center bg-black/40 z-[900]">
+  <div class="bg-white w-full rounded-t-2xl p-4 max-h-[86vh] overflow-y-auto">
+    <div id="modalContent"></div>
+    <div class="mt-3 flex gap-2">
+      <button id="applyModal" class="flex-1 py-2 bg-blue-600 text-white rounded-xl">تطبيق</button>
+      <button id="closeModal" class="flex-1 py-2 border rounded-xl">إلغاء</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  
+/********************** إعداد الخريطة **********************/
+const AMMAN = [31.9539, 35.9106];
+const map = L.map('map', { zoomControl: false, minZoom: 11, maxZoom: 19 }).setView(AMMAN, 12);
+
+const osm = L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20, attribution: '© OpenStreetMap' }).addTo(map);
+const sat = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', { maxZoom: 20, attribution:'© Esri' });
+
+L.control.zoom({ position: 'topleft' }).addTo(map);
+
+const cluster = L.markerClusterGroup({ showCoverageOnHover: false, maxClusterRadius: 60 });
+map.addLayer(cluster);
+
+/********************** بيانات مبدئية **********************/
+const AREAS = [
+  '', 'عبدون','الصويفية','دابوق','تلاع العلي','الشميساني','ماركا','جبل عمّان','اللويبدة','البيادر','السابع','الثامن','الخامس','خلدا','أم أذينة','أم السماق','الرابية','دير غبار','المدينة الرياضية','صويلح','الجبيهة','أبو نصير','شفا بدران','طبربور','مرج الحمام','اليادودة','القويسمة','جاوا','ناعور','الفحيص','الزرقاء','مأدبا'
+];
+
+const seed = [
+  { id:1, title:'شقة فاخرة للبيع - عبدون', type:'apartment', tx:'sale', area:'عبدون', price:120000, rooms:3, bath:2, space:130, lat:31.965, lon:35.888, phone:'0797654321', createdAt: Date.now()-86400000*3 },
+  { id:2, title:'أرض سكنية للبيع - ماركا', type:'land', tx:'sale', area:'ماركا', price:80000, lat:31.950, lon:35.930, phone:'0791112233', createdAt: Date.now()-86400000*6 },
+  { id:3, title:'فيلا راقية للإيجار - الشميساني', type:'villa', tx:'rent', area:'الشميساني', price:1800, rooms:5, bath:3, space:300, lat:31.957, lon:35.902, phone:'0790007766', createdAt: Date.now()-86400000*1 },
+  { id:4, title:'شقة للبيع - خلدا', type:'apartment', tx:'sale', area:'خلدا', price:155000, rooms:4, bath:3, space:165, lat:31.993, lon:35.854, phone:'0795553332', createdAt: Date.now()-86400000*2 },
+  { id:5, title:'شقة للإيجار - تلاع العلي', type:'apartment', tx:'rent', area:'تلاع العلي', price:650, rooms:2, bath:2, space:95, lat:31.994, lon:35.877, phone:'0798881122', createdAt: Date.now()-86400000*10 },
+  { id:6, title:'محل تجاري للإيجار - السابع', type:'shop', tx:'rent', area:'السابع', price:900, lat:31.969, lon:35.877, phone:'0797774441', createdAt: Date.now()-86400000*4 },
+  { id:7, title:'أرض على شارعين - ناعور', type:'land', tx:'sale', area:'ناعور', price:130000, lat:31.86, lon:35.82, phone:'0792345678', createdAt: Date.now()-86400000*14 },
+];
+
+const STORAGE_KEY = 'aqaar_mobile_props_v2';
+const SETTINGS_KEY = 'aqaar_settings_v1';
+
+function loadLocal() { const raw = localStorage.getItem(STORAGE_KEY); if (!raw) { localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); return seed.slice(); } try { return JSON.parse(raw); } catch { localStorage.setItem(STORAGE_KEY, JSON.stringify(seed)); return seed.slice(); } }
+function saveLocal(list) { localStorage.setItem(STORAGE_KEY, JSON.stringify(list)); }
+let PROPS = loadLocal();
+
+/********************** إعدادات الخادم (اختياري) **********************/
+const settings = JSON.parse(localStorage.getItem(SETTINGS_KEY) || '{}');
+let API_BASE = settings.API_BASE || '';
+let ADMIN_TOKEN = settings.ADMIN_TOKEN || '';
+let SAVE_TARGET = 'server';
+
+async function tryFetchServerList(){
+  if(!API_BASE) return null;
+  try{
+    const res = await fetch(API_BASE + '/api/listings');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    const data = await res.json();
+    if(Array.isArray(data)) return data;
+  }catch(e){ /* تجاهل */ }
+  return null;
+}
+
+async function persistListing(listing){
+  if(SAVE_TARGET === 'server' && API_BASE){
+    try{
+      const res = await fetch(API_BASE + '/api/listings', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', 'x-admin-token': ADMIN_TOKEN || '' },
+        body: JSON.stringify(listing)
+      });
+      if(!res.ok) throw new Error('HTTP '+res.status);
+      const saved = await res.json();
+      return saved;
+    }catch(err){ alert('فشل حفظ الإعلان على الخادم، سيتم الحفظ محلياً.'); }
+  }
+  // محلي
+  const next = [...PROPS, listing];
+  PROPS = next; saveLocal(next); return listing;
+}
+
+/********************** أدوات مساعدة **********************/
+const E = sel => document.querySelector(sel);
+const fmt = n => (typeof n === 'number') ? n.toLocaleString('en-US') : n;
+const jd = v => typeof v === 'number' && !Number.isNaN(v);
+const ago = t => { const s=(Date.now()-t)/1000; if(s<60) return 'الآن'; const m=s/60; if(m<60) return Math.floor(m)+' د'; const h=m/60; if(h<24) return Math.floor(h)+' س'; const d=h/24; return Math.floor(d)+' ي'; };
+
+function makePriceIcon(p){
+  const html = `<div class="price-pin ${p.tx==='rent'?'rent':'sale'}"><span class="dot"></span><span class="val">${fmt(p.price)}</span><span class="unit">${p.tx==='rent'?'د/شهر':'د.أ'}</span></div>`;
+  return L.divIcon({ html, className: 'price', iconSize: null });
+}
+
+function cardHTML(p){
+  const typeMap = { apartment:'شقة', villa:'فيلا', land:'أرض', shop:'محل' };
+  const txMap = { sale:'للبيع', rent:'للإيجار' };
+  const whats = `https://wa.me/962${(p.phone||'').replace(/^0/, '')}?text=${encodeURIComponent('مرحبا، مهتم بالإعلان: '+p.title)}`;
+  const gmaps = `https://www.google.com/maps?q=${p.lat},${p.lon}`;
+  return `
+  <div class="p-3 rounded-2xl border shadow-sm">
+    <div class="flex items-start justify-between gap-3">
+      <div>
+        <div class="text-xs text-slate-500">${typeMap[p.type]||''} • ${p.area}</div>
+        <div class="font-bold leading-6 text-sm">${p.title}</div>
+      </div>
+      <div class="text-right">
+        <div class="font-extrabold ${p.tx==='rent'?'text-emerald-600':'text-sky-600'} text-sm">${fmt(p.price)} ${p.tx==='rent'?'د/شهر':'د.أ'}</div>
+        <div class="text-[11px] text-slate-500">${txMap[p.tx]} • ${p.createdAt?ago(p.createdAt):''}</div>
+      </div>
+    </div>
+    <div class="mt-2 text-[12px] text-slate-600">
+      ${p.space?`المساحة: <b>${fmt(p.space)}</b> م² • `:''}
+      ${p.rooms?`غرف: <b>${fmt(p.rooms)}</b> • `:''}
+      ${p.bath?`حمامات: <b>${fmt(p.bath)}</b>`:''}
+    </div>
+    <div class="mt-3 grid grid-cols-3 gap-2 text-[12px]">
+      <button class="py-2 rounded-xl border" onclick="flyTo(${p.lat},${p.lon})">عرض</button>
+      <a class="py-2 rounded-xl border text-center" href="${gmaps}" target="_blank">اتجاهات</a>
+      <div class="grid grid-cols-2 gap-2 col-span-3">
+        <a class="py-2 rounded-xl bg-sky-600 text-white text-center" href="tel:+962${p.phone}">اتصال</a>
+        <a class="py-2 rounded-xl bg-emerald-600 text-white text-center" href="${whats}" target="_blank">واتساب</a>
+      </div>
+    </div>
+  </div>`;
+}
+
+/********************** تحميل الإعلانات + تجهيز الصور **********************/
+async function loadAds() {
+  try {
+    const res = await fetch('http://localhost:3000/listings');
+    const ads = await res.json();
+
+    // تحويل أسماء الصور إلى روابط كاملة
+    PROPS = ads.map(ad => {
+      if(ad.images && ad.images.length){
+        ad.images = ad.images.map(imgName => `http://localhost:3000/images/${ad.id}/${imgName}`);
+      } else {
+        ad.images = [];
+      }
+      return ad;
+    });
+
+    drawMarkers(PROPS);
+  } catch(err) {
+    console.error('خطأ بتحميل الإعلانات:', err);
+  }
+}
+
+// استدعاء التحميل تلقائيًا
+loadAds();
+
+/********************** تحقق من وجود الصورة **********************/
+async function checkImage(url){
+  try {
+    const res = await fetch(url, { method:'HEAD' });
+    return res.ok;
+  } catch(e){
+    return false;
+  }
+}
+
+// ——— استبدل buildPopup + loadAds + drawMarkers بالشفرة التالية ———
+
+
+// ===================== createFullScreenModal =====================
+function createFullScreenModal(ad) {
+  const images = Array.isArray(ad.images)
+    ? ad.images.map(img => {
+        if (!img) return '';
+        if (/^https?:\/\//.test(img)) return img;
+        return `http://localhost:3000/images/${ad.id}/${encodeURIComponent(img)}`;
+      }).filter(Boolean)
+    : [];
+
+  const imagesHTML = images.length
+    ? `<div class="swiper full-slider" style="width:100%;height:240px;border-radius:10px;overflow:hidden;">
+         <div class="swiper-wrapper">
+           ${images.map(src => `<div class="swiper-slide"><img src="${src}" style="width:100%;height:240px;object-fit:cover;" onerror="this.style.opacity=0.5;"></div>`).join('')}
+         </div>
+         <div class="swiper-pagination"></div>
+         <div class="swiper-button-next"></div>
+         <div class="swiper-button-prev"></div>
+       </div>`
+    : `<div style="height:240px;background:#e0e0e0;display:flex;align-items:center;justify-content:center;color:#888;font-size:14px;">لا توجد صور</div>`;
+
+  const fieldConfigs = {
+    "أرض": ['العنوان','المساحة','السعر','الهاتف'],
+    "شقة": ['العنوان','عدد الغرف','عدد الحمامات','المساحة','الدور','السعر','الهاتف'],
+    "فيلا": ['العنوان','عدد الغرف','عدد الحمامات','المساحة','السعر','الهاتف','مسبح','حديقة'],
+    "محل": ['العنوان','المساحة','نوع النشاط','السعر','الهاتف','واجهة']
+  };
+
+  const keyMap = {
+    'العنوان':'title','نوع العقار':'type','المساحة':'area','عدد الغرف':'rooms','عدد الحمامات':'bathrooms',
+    'السعر':'price','الهاتف':'phone','العنوان التفصيلي':'address','الوصف':'description',
+    'الدور':'floor','مسبح':'pool','حديقة':'garden','نوع النشاط':'businessType','واجهة':'front'
+  };
+
+  const keys = fieldConfigs[ad.type] || ['العنوان','المساحة','السعر','الهاتف'];
+  const fields = {};
+  for(const key of keys){
+    fields[key] = ad[keyMap[key]] ?? '—';
+  }
+
+  const fieldsHTML = Object.entries(fields)
+    .map(([key, value]) => `<div style="margin-bottom:6px;font-size:14px;color:#222;"><b>${key}:</b> ${value}</div>`).join('');
+
+  const buttonsHTML = `
+    <div style="display:flex; justify-content:space-around; margin-top:12px;">
+      <a href="tel:${ad.phone}" style="flex:1;margin:0 2px;text-align:center;padding:10px;background:#4CAF50;color:white;border-radius:8px;text-decoration:none;font-size:14px;">📞 اتصال</a>
+      <a href="https://wa.me/${ad.phone}" target="_blank" style="flex:1;margin:0 2px;text-align:center;padding:10px;background:#25D366;color:white;border-radius:8px;text-decoration:none;font-size:14px;">💬 واتساب</a>
+      <a href="https://www.google.com/maps/search/?api=1&query=${ad.lat},${ad.lon}" target="_blank" style="flex:1;margin:0 2px;text-align:center;padding:10px;background:#4285F4;color:white;border-radius:8px;text-decoration:none;font-size:14px;">🗺️ موقع</a>
+      <button id="share-btn" style="flex:1;margin:0 2px;padding:10px;background:#FF9800;color:white;border:none;border-radius:8px;font-size:14px;cursor:pointer;">🔗 مشاركة</button>
+    </div>
+  `;
+
+  const modal = document.createElement('div');
+  modal.id = 'ad-fullscreen-modal';
+  modal.style.cssText = `position:fixed; top:0; left:0; width:100%; height:100%; background:#f8f9fa; z-index:99999; overflow-y:auto; padding:0; box-sizing:border-box; font-family:sans-serif; animation: fadeIn 0.3s ease forwards;`;
+  modal.innerHTML = `<div style="position:relative;">${imagesHTML}<button id="close-fullscreen" style="position:absolute; top:10px; left:10px; z-index:10;background:#f44336;color:#fff;border:none;padding:8px 14px;border-radius:8px;font-size:18px; cursor:pointer;">✖</button></div>
+                     <div style="padding:12px;">${fieldsHTML}${buttonsHTML}<div id="mini-map" style="width:100%;height:180px;border-radius:10px;margin-top:10px;"></div></div>`;
+  document.body.appendChild(modal);
+
+  document.getElementById('close-fullscreen').onclick = () => modal.remove();
+
+  if (images.length) {
+    new Swiper(modal.querySelector('.full-slider'), {
+      loop: true,
+      pagination: { el: modal.querySelector('.swiper-pagination'), clickable: true },
+      navigation: { nextEl: modal.querySelector('.swiper-button-next'), prevEl: modal.querySelector('.swiper-button-prev') },
+    });
+  }
+
+  if (ad.lat && ad.lon) {
+    const miniMap = L.map(modal.querySelector('#mini-map'), { center:[ad.lat,ad.lon], zoom:16, dragging:false, scrollWheelZoom:false, doubleClickZoom:false, zoomControl:false, attributionControl:false });
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {}).addTo(miniMap);
+    L.marker([ad.lat,ad.lon]).addTo(miniMap);
+  }
+
+  const shareBtn = modal.querySelector('#share-btn');
+  shareBtn.onclick = () => {
+    if(navigator.share) navigator.share({title:ad.title||'إعلان عقار', text:`شاهد هذا الإعلان: ${ad.title||''}`, url:window.location.href}).catch(err=>console.log(err));
+    else alert('خاصية المشاركة غير مدعومة في متصفحك');
+  };
+}
+
+// ===================== أيقونة السعر =====================
+function makePriceIcon(ad) {
+  return L.divIcon({
+    html: `<div style="
+      background:#1e90ff;
+      color:#fff;
+      padding:2px 6px;
+      border-radius:4px;
+      font-size:10px;
+      font-weight:600;
+      white-space: nowrap;
+    ">${ad.price ?? '--'} د.أ</div>`,
+    className: '',
+    iconSize: [60, 20]
+  });
+}
+
+// ===================== createPreviewPanel (Responsive) =====================
+function createPreviewPanel(ad) {
+  const imageSrc = Array.isArray(ad.images) && ad.images.length
+    ? /^https?:\/\//.test(ad.images[0]) ? ad.images[0] : `http://localhost:3000/images/${ad.id}/${encodeURIComponent(ad.images[0])}` : '';
+  
+  const fieldConfigs = {
+    "أرض": ['العنوان','المساحة','السعر','الهاتف'],
+    "شقة": ['العنوان','عدد الغرف','عدد الحمامات','المساحة','الدور','السعر','الهاتف'],
+    "فيلا": ['العنوان','عدد الغرف','عدد الحمامات','المساحة','السعر','الهاتف','مسبح','حديقة'],
+    "محل": ['العنوان','المساحة','نوع النشاط','السعر','الهاتف','واجهة']
+  };
+  const keyMap = {
+    'العنوان':'title','نوع العقار':'type','المساحة':'area','عدد الغرف':'rooms','عدد الحمامات':'bathrooms',
+    'السعر':'price','الهاتف':'phone','العنوان التفصيلي':'address','الوصف':'description',
+    'الدور':'floor','مسبح':'pool','حديقة':'garden','نوع النشاط':'businessType','واجهة':'front'
+  };
+  const keys = fieldConfigs[ad.type] || ['العنوان','المساحة','السعر','الهاتف'];
+  const fields = {};
+  for(const key of keys){
+    fields[key] = ad[keyMap[key]] ?? '—';
+  }
+  const fieldPreview = Object.entries(fields).slice(0,2).map(([k,v])=>`${v}`).join(' | ');
+
+  const div = document.createElement('div');
+  div.id = 'ad-preview';
+  div.style.cssText = `
+    position:fixed; bottom:10px; left:50%; transform:translateX(-50%);
+    max-width:95%; width:300px; background:#fff; border-radius:10px;
+    box-shadow:0 3px 12px rgba(0,0,0,0.25); cursor:pointer;
+    display:flex; flex-direction:row; align-items:center; padding:8px; z-index:9999;
+    font-family:sans-serif;
+  `;
+  div.innerHTML = `
+    <img src="${imageSrc}" style="width:60px; height:60px; object-fit:cover; border-radius:6px; margin-right:8px;" onerror="this.style.opacity=0.5;">
+    <div style="flex:1; display:flex; flex-direction:column; justify-content:center; overflow:hidden;">
+      <div style="font-size:14px; font-weight:600; color:#222; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${ad.title||'—'}</div>
+      <div style="font-size:12px; color:#555; white-space:nowrap; text-overflow:ellipsis; overflow:hidden;">${fieldPreview}</div>
+      <div style="display:flex; gap:4px; margin-top:4px;">
+        <a href="tel:${ad.phone}" style="flex:1;text-align:center;padding:6px;background:#4CAF50;color:white;border-radius:6px;text-decoration:none;font-size:12px;">📞</a>
+        <a href="https://wa.me/${ad.phone}" target="_blank" style="flex:1;text-align:center;padding:6px;background:#25D366;color:white;border-radius:6px;text-decoration:none;font-size:12px;">💬</a>
+        <button style="flex:1;text-align:center;padding:6px;background:#FF9800;color:white;border:none;border-radius:6px;font-size:12px;cursor:pointer;" onclick="createFullScreenModal(${JSON.stringify(ad)})">🔍</button>
+      </div>
+    </div>
+  `;
+  div.onclick = () => createFullScreenModal(ad);
+  return div;
+}
+
+// ===================== Animations =====================
+const style = document.createElement('style');
+style.innerHTML = `
+@keyframes fadeIn{from{opacity:0;}to{opacity:1;}}
+`;
+document.head.appendChild(style);
+
+// ===================== loadAndDrawMarkers =====================
+async function loadAndDrawMarkers() {
+  let ads = [];
+  try {
+    const res = await fetch('http://localhost:3000/listings');
+    if(!res.ok) throw new Error('HTTP '+res.status);
+    ads = await res.json();
+  } catch(e){ console.warn('تعذّر تحميل البيانات من السيرفر', e); return; }
+
+  markers = [];
+  for(const ad of ads){
+    if(!ad.lat||!ad.lon) continue;
+    const marker = L.marker([ad.lat,ad.lon], {icon: makePriceIcon(ad)});
+    marker.on('click', ()=>{
+      const existing = document.getElementById('ad-preview');
+      if(existing) existing.remove();
+      document.body.appendChild(createPreviewPanel(ad));
+    });
+    marker.addTo(map);
+    markers.push({ad,marker});
+  }
+}
+
+// ===================== إزالة البوب أب عند تحريك الخريطة =====================
+map.on('movestart', ()=>{
+  const existing = document.getElementById('ad-preview');
+  if(existing) existing.remove();
+});
+
+// ===================== استدعاء الكود =====================
+loadAndDrawMarkers();
+
+/********************** فلترة **********************/
+const filters = { q:'', tx:'', area:'', pmin:null, pmax:null, type:'', sort:'recent' };
+
+function withinMap(p){
+  const b = map.getBounds();
+  return b.contains([p.lat, p.lon]);
+}
+
+function applyFilters(){
+  let list = PROPS.filter(p=>{
+    if(filters.q){
+      const q = filters.q.trim().toLowerCase();
+      const blob = `${p.title} ${p.area} ${p.type}`.toLowerCase();
+      if(!blob.includes(q)) return false;
+    }
+    if(filters.tx && p.tx !== filters.tx) return false;
+    if(filters.type && p.type !== filters.type) return false;
+    if(filters.area && p.area !== filters.area) return false;
+    if(filters.pmin != null && p.price < filters.pmin) return false;
+    if(filters.pmax != null && p.price > filters.pmax) return false;
+    return true;
+  });
+
+  // قصر النتائج على نطاق الخريطة
+  list = list.filter(withinMap);
+
+  // ترتيب
+  if(filters.sort==='low') list.sort((a,b)=> (a.price||0)-(b.price||0));
+  else if(filters.sort==='high') list.sort((a,b)=> (b.price||0)-(a.price||0));
+  else list.sort((a,b)=> (b.createdAt||0)-(a.createdAt||0));
+
+  E('#count').textContent = list.length;
+  drawMarkers(list);
+  renderList(list);
+}
+
+function renderList(list){
+  const box = E('#list');
+  box.innerHTML = list.map(cardHTML).join('');
+}
+
+/********************** واجهة الفلاتر **********************/
+function openModal(title, inner){
+  const html = `
+    <div class="font-bold mb-2">${title}</div>
+    ${inner}
+  `;
+  E('#modalContent').innerHTML = html;
+  E('#modal').classList.remove('hidden');
+}
+function closeModal(){ E('#modal').classList.add('hidden'); }
+E('#closeModal').onclick = closeModal;
+
+// منطقة
+E('#fArea').onclick = ()=>{
+  const options = AREAS.map(a=>`<option ${filters.area===a?'selected':''} value="${a}">${a||'الكل'}</option>`).join('');
+  openModal('اختر المنطقة', `<select id="iArea" class="w-full p-3 border rounded-xl">${options}</select>`);
+  E('#applyModal').onclick = ()=>{ filters.area = E('#iArea').value; setPillState(); closeModal(); applyFilters(); };
+};
+
+// بيع/إيجار/الكل
+E('#fType').onclick = ()=>{ filters.tx=''; setPillState(); applyFilters(); };
+E('#fSale').onclick = ()=>{ filters.tx='sale'; setPillState(); applyFilters(); };
+E('#fRent').onclick = ()=>{ filters.tx='rent'; setPillState(); applyFilters(); };
+
+// السعر
+E('#fPrice').onclick = ()=>{
+  openModal('نطاق السعر', `
+    <div class="grid grid-cols-2 gap-2">
+      <input id="iMin" type="number" placeholder="أدنى" class="p-3 border rounded-xl" value="${filters.pmin??''}">
+      <input id="iMax" type="number" placeholder="أعلى" class="p-3 border rounded-xl" value="${filters.pmax??''}">
+    </div>
+  `);
+  E('#applyModal').onclick = ()=>{
+    const min = E('#iMin').value; const max = E('#iMax').value;
+    filters.pmin = min!=='' ? Number(min) : null;
+    filters.pmax = max!=='' ? Number(max) : null;
+    setPillState(); closeModal(); applyFilters();
+  };
+};
+
+// المزيد (نوع العقار)
+E('#fMore').onclick = ()=>{
+  openModal('نوع العقار', `
+    <select id="iType" class="w-full p-3 border rounded-xl">
+      <option value="">الكل</option>
+      <option value="apartment" ${filters.type==='apartment'?'selected':''}>شقة</option>
+      <option value="villa" ${filters.type==='villa'?'selected':''}>فيلا</option>
+      <option value="land" ${filters.type==='land'?'selected':''}>أرض</option>
+      <option value="shop" ${filters.type==='shop'?'selected':''}>محل</option>
+    </select>
+  `);
+  E('#applyModal').onclick = ()=>{ filters.type = E('#iType').value; setPillState(); closeModal(); applyFilters(); };
+};
+
+// بحث
+E('#btnSearch').onclick = ()=>{ filters.q = E('#q').value; applyFilters(); };
+E('#q').addEventListener('keydown', (e)=>{ if(e.key==='Enter'){ filters.q = E('#q').value; applyFilters(); } });
+
+// basemap
+let satOn = false; E('#btnBasemap').onclick = ()=>{ if(satOn){ map.removeLayer(sat); satOn=false; E('#btnBasemap').classList.remove('active'); } else { sat.addTo(map); satOn=true; E('#btnBasemap').classList.add('active'); } };
+
+// إعادة ضبط
+E('#btnBackToCity').onclick = ()=>{ map.setView(AMMAN, 12); };
+E('#btnRefresh').onclick = applyFilters;
+E('#sort').onchange = (e)=>{ filters.sort = e.target.value; applyFilters(); };
+
+function setPillState(){
+  E('#fSale').classList.toggle('active', filters.tx==='sale');
+  E('#fRent').classList.toggle('active', filters.tx==='rent');
+  E('#fType').classList.toggle('active', filters.tx==='');
+  E('#fArea').classList.toggle('active', !!filters.area);
+  E('#fPrice').classList.toggle('active', filters.pmin!=null || filters.pmax!=null);
+  E('#fMore').classList.toggle('active', !!filters.type);
+}
+
+// افترض أن هذه داخل ملف JS الخاص بالواجهة
+
+// تحميل الإعلانات تلقائياً عند فتح الصفحة
+async function loadAds() {
+  try {
+    const res = await fetch('http://localhost:3000/listings');
+    const ads = await res.json();
+    PROPS = ads.map(ad => {
+      if(ad.images && ad.images.length){
+        ad.images = ad.images.map(imgName => `http://localhost:3000/images/${ad.id}/${imgName}`);
+      }
+      return ad;
+    });
+    drawMarkers(PROPS);
+  } catch(err) {
+    console.error('خطأ بتحميل الإعلانات:', err);
+  }
+}
+
+// استدعاء التحميل تلقائياً
+loadAds();
+
+E('#btnAdmin').onclick = () => {
+  const areaOpts = AREAS.map(a => `<option value="${a}">${a||'—'}</option>`).join('');
+
+  const html = `
+  <div class="space-y-3">
+    <div class="font-extrabold text-slate-800">لوحة المدير</div>
+
+    <input id="ad_id" type="number" class="p-3 border rounded-xl col-span-2" placeholder="رقم الإعلان (اختياري للإضافة/التعديل)">
+
+    <div class="grid grid-cols-2 gap-2">
+      <input id="ad_title" class="p-3 border rounded-xl col-span-2" placeholder="عنوان الإعلان">
+      <select id="ad_type" class="p-3 border rounded-xl">
+        <option value="">-- اختر نوع العقار --</option>
+        <option value="apartment">شقة</option>
+        <option value="villa">فيلا</option>
+        <option value="land">أرض</option>
+        <option value="shop">محل</option>
+      </select>
+
+      <select id="ad_tx" class="p-3 border rounded-xl">
+        <option value="sale">للبيع</option>
+        <option value="rent">للإيجار</option>
+      </select>
+
+      <select id="ad_area" class="p-3 border rounded-xl col-span-2">${areaOpts}</select>
+      <input id="ad_price" type="number" class="p-3 border rounded-xl" placeholder="السعر">
+      <input id="ad_phone" class="p-3 border rounded-xl col-span-2" placeholder="07XXXXXXXX">
+      <input type="file" id="ad_images" multiple accept="image/*" class="p-3 border rounded-xl col-span-2">
+
+      <div id="apartmentFields" class="col-span-2 hidden">
+        <input id="ad_space" type="number" class="p-3 border rounded-xl" placeholder="المساحة م²">
+        <input id="ad_rooms" type="number" class="p-3 border rounded-xl" placeholder="عدد الغرف">
+        <input id="ad_bath" type="number" class="p-3 border rounded-xl" placeholder="عدد الحمامات">
+        <input id="ad_living" type="number" class="p-3 border rounded-xl" placeholder="صالة معيشة">
+        <input id="ad_floor" type="number" class="p-3 border rounded-xl" placeholder="عدد الطوابق">
+        <select id="ad_garage" class="p-3 border rounded-xl">
+          <option value="">كراج سيارة</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <select id="ad_elevator" class="p-3 border rounded-xl">
+          <option value="">مصعد</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <select id="ad_kitchen" class="p-3 border rounded-xl">
+          <option value="">مطبخ</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <select id="ad_balcony" class="p-3 border rounded-xl">
+          <option value="">بلكونة</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+      </div>
+
+      <div id="landFields" class="col-span-2 hidden">
+        <input id="ad_land_id" type="text" class="p-3 border rounded-xl" placeholder="رقم قطعة الأرض">
+        <input id="ad_mudiriyah" type="text" class="p-3 border rounded-xl" placeholder="المديرية">
+        <input id="ad_village" type="text" class="p-3 border rounded-xl" placeholder="القرية">
+        <input id="ad_hawd" type="text" class="p-3 border rounded-xl" placeholder="الحوض">
+        <input id="ad_land_space" type="number" class="p-3 border rounded-xl" placeholder="المساحة م²">
+        <select id="ad_land_organization" class="p-3 border rounded-xl">
+          <option value="">التنظيم</option>
+          <option value="residential">سكني</option>
+          <option value="commercial">تجاري</option>
+          <option value="agricultural">زراعي</option>
+          <option value="industrial">صناعي</option>
+          <option value="multiuse">متعدد الاستعمال</option>
+          <option value="outside">خارج التنظيم</option>
+        </select>
+        <div class="flex gap-2">
+          <label><input type="checkbox" class="resOption" value="A">سكن أ</label>
+          <label><input type="checkbox" class="resOption" value="B">سكن ب</label>
+          <label><input type="checkbox" class="resOption" value="C">سكن ج</label>
+          <label><input type="checkbox" class="resOption" value="D">سكن د</label>
+        </div>
+        <select id="ad_land_divided" class="p-3 border rounded-xl">
+          <option value="">مفروز</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <input id="ad_land_front" type="text" class="p-3 border rounded-xl" placeholder="الواجهة">
+        <input id="ad_streets_count" type="number" class="p-3 border rounded-xl" placeholder="عدد الشوارع">
+        <input id="ad_streets_width" type="text" class="p-3 border rounded-xl" placeholder="عرض الشوارع (م)">
+        <div class="flex gap-2">
+          <label><input type="checkbox" class="services" value="water">مياه</label>
+          <label><input type="checkbox" class="services" value="electricity">كهرباء</label>
+          <label><input type="checkbox" class="services" value="sewage">صرف صحي</label>
+        </div>
+      </div>
+
+      <div class="col-span-2 grid grid-cols-3 gap-2">
+        <input id="ad_lat" type="number" step="any" class="p-3 border rounded-xl" placeholder="Lat">
+        <input id="ad_lon" type="number" step="any" class="p-3 border rounded-xl" placeholder="Lon">
+        <button id="pickOnMap" class="p-3 border rounded-xl">التقاط من الخريطة</button>
+      </div>
+    </div>
+
+    <button id="applyModal" class="col-span-2 py-2 bg-emerald-600 text-white rounded-xl">تطبيق الإعلان</button>
+  </div>`;
+
+  openModal('إدارة الإعلانات', html);
+
+  const typeSelect = E('#ad_type');
+  const apartmentFields = E('#apartmentFields');
+  const landFields = E('#landFields');
+
+  typeSelect.addEventListener('change', () => {
+    if(typeSelect.value==='apartment' || typeSelect.value==='villa'){
+      apartmentFields.classList.remove('hidden');
+      landFields.classList.add('hidden');
+    } else if(typeSelect.value==='land'){
+      landFields.classList.remove('hidden');
+      apartmentFields.classList.add('hidden');
+    } else {
+      apartmentFields.classList.add('hidden');
+      landFields.classList.add('hidden');
+    }
+  });
+
+  E('#pickOnMap').onclick = () => {
+    const overlay = document.createElement('div');
+    overlay.style = 'position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999;display:flex;flex-direction:column;';
+    overlay.innerHTML = `<div style="flex:1;" id="mapPicker"></div>
+    <div class="p-2 grid grid-cols-2 gap-2">
+      <button id="confirmLocation" class="p-2 bg-emerald-600 text-white rounded-xl">تأكيد الموقع</button>
+      <button id="closePicker" class="p-2 bg-slate-900 text-white rounded-xl">إلغاء</button>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    const pickerMap = L.map('mapPicker').setView(AMMAN, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(pickerMap);
+    let marker = null, lat, lon;
+    pickerMap.on('click', e => {
+      lat = e.latlng.lat.toFixed(6);
+      lon = e.latlng.lng.toFixed(6);
+      if(marker) pickerMap.removeLayer(marker);
+      marker = L.marker([lat, lon]).addTo(pickerMap);
+    });
+
+    E('#confirmLocation').onclick = () => {
+      if(lat && lon){
+        E('#ad_lat').value = lat;
+        E('#ad_lon').value = lon;
+        document.body.removeChild(overlay);
+        alert('تم تحديد الموقع.');
+      } else alert('اختر الموقع أولاً.');
+    };
+    E('#closePicker').onclick = () => document.body.removeChild(overlay);
+  };
+
+  // تطبيق الإعلان وحفظه
+  E('#applyModal').onclick = async () => {
+    const idField = E('#ad_id').value;
+    const isEdit = !!idField;
+    const newAd = {
+      id: isEdit ? Number(idField) : Date.now(),
+      title: E('#ad_title').value.trim(),
+      type: typeSelect.value,
+      tx: E('#ad_tx').value,
+      area: E('#ad_area').value,
+      price: Number(E('#ad_price').value||0),
+      lat: Number(E('#ad_lat').value),
+      lon: Number(E('#ad_lon').value),
+      phone: E('#ad_phone').value.trim(),
+      images: [],
+      createdAt: Date.now()
+    };
+
+    if(typeSelect.value==='apartment' || typeSelect.value==='villa'){
+      newAd.space = Number(E('#ad_space').value||0);
+      newAd.rooms = Number(E('#ad_rooms').value||0);
+      newAd.bath = Number(E('#ad_bath').value||0);
+      newAd.living = Number(E('#ad_living').value||0);
+      newAd.floor = Number(E('#ad_floor').value||0);
+      newAd.garage = E('#ad_garage').value;
+      newAd.elevator = E('#ad_elevator').value;
+      newAd.kitchen = E('#ad_kitchen').value;
+      newAd.balcony = E('#ad_balcony').value;
+    }
+
+    if(typeSelect.value==='land'){
+      newAd.land_id = E('#ad_land_id').value;
+      newAd.mudiriyah = E('#ad_mudiriyah').value;
+      newAd.village = E('#ad_village').value;
+      newAd.hawd = E('#ad_hawd').value;
+      newAd.space = Number(E('#ad_land_space').value||0);
+      newAd.organization = E('#ad_land_organization').value;
+      newAd.divided = E('#ad_land_divided').value;
+      newAd.front = E('#ad_land_front').value;
+      newAd.streets_count = Number(E('#ad_streets_count').value||0);
+      newAd.streets_width = E('#ad_streets_width').value;
+      newAd.resOptions = Array.from(document.querySelectorAll('.resOption:checked')).map(c=>c.value);
+      newAd.services = Array.from(document.querySelectorAll('.services:checked')).map(c=>c.value);
+    }
+
+    const files = E('#ad_images').files;
+    const formData = new FormData();
+    formData.append('ad', JSON.stringify(newAd));
+    for(let f of files) formData.append('images', f);
+
+    try {
+      const res = await fetch('http://localhost:3000/saveListing', { method:'POST', body: formData });
+      const data = await res.json();
+      if(data.success){
+        alert('تم إضافة الإعلان بنجاح');
+        loadAds(); // إعادة تحميل كل الإعلانات تلقائي
+      } else alert('خطأ بالحفظ');
+    } catch(err){ alert('خطأ بالسيرفر: '+err.message); }
+  };
+};
+
+
+/********************** سلوك الشيت (سحب مبسط) **********************/
+(function(){
+  const sheet = E('#sheet');
+  let startY = 0; let startAt = 'collapsed';
+  const states = ['collapsed','mid','expanded'];
+  function setState(s){ sheet.classList.remove('collapsed','mid','expanded'); sheet.classList.add(s); }
+  function current(){ return states.find(s=>sheet.classList.contains(s)) || 'collapsed'; }
+  setState('collapsed');
+
+  const onStart = (y)=>{ startY = y; startAt = current(); document.body.style.userSelect='none'; };
+  const onMove = (y)=>{ /* live drag يمكن إضافته عند الحاجة */ };
+  const onEnd = (y)=>{
+    const dy = y - startY; // موجب: سحب للأسفل
+    let next = startAt;
+    if(dy < -40){ // للأعلى
+      next = startAt === 'collapsed' ? 'mid' : 'expanded';
+    } else if(dy > 40){ // للأسفل
+      next = startAt === 'expanded' ? 'mid' : 'collapsed';
+    }
+    setState(next); document.body.style.userSelect='';
+  };
+
+  sheet.addEventListener('touchstart', e=> onStart(e.touches[0].clientY));
+  sheet.addEventListener('touchmove', e=> onMove(e.touches[0].clientY));
+  sheet.addEventListener('touchend', e=> onEnd(e.changedTouches[0].clientY));
+  sheet.addEventListener('mousedown', e=> onStart(e.clientY));
+  window.addEventListener('mousemove', e=>{ if(startY) onMove(e.clientY); });
+  window.addEventListener('mouseup', e=>{ if(startY){ onEnd(e.clientY); startY=0; } });
+})();
+
+/********************** تهيئة *************************/
+async function init(){
+  setPillState();
+  const serverList = await tryFetchServerList();
+  if(serverList){ PROPS = serverList; }
+  drawMarkers(PROPS);
+  applyFilters();
+}
+
+// تحديث النتائج تلقائياً عند تحريك الخريطة بعد توقف 150ms
+let panTimer=null; map.on('moveend', ()=>{ if(panTimer) clearTimeout(panTimer); panTimer=setTimeout(applyFilters, 150); });
+
+init();
+
+</script>
+</body>
+
+</html>

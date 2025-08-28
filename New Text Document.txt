@@ -1,0 +1,8 @@
+cd C:\Users\DELL\Desktop\website
+dir
+
+npm init -y
+npm install express
+
+node server.js
+

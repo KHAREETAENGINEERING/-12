@@ -1,0 +1,235 @@
+// افترض أن هذه داخل ملف JS الخاص بالواجهة
+
+// تحميل الإعلانات تلقائياً عند فتح الصفحة
+async function loadAds() {
+  try {
+    const res = await fetch('http://localhost:3000/listings');
+    const ads = await res.json();
+    PROPS = ads.map(ad => {
+      if(ad.images && ad.images.length){
+        ad.images = ad.images.map(imgName => `http://localhost:3000/images/${ad.id}/${imgName}`);
+      }
+      return ad;
+    });
+    drawMarkers(PROPS);
+  } catch(err) {
+    console.error('خطأ بتحميل الإعلانات:', err);
+  }
+}
+
+// استدعاء التحميل تلقائياً
+loadAds();
+
+E('#btnAdmin').onclick = () => {
+  const areaOpts = AREAS.map(a => `<option value="${a}">${a||'—'}</option>`).join('');
+
+  const html = `
+  <div class="space-y-3">
+    <div class="font-extrabold text-slate-800">لوحة المدير</div>
+
+    <input id="ad_id" type="number" class="p-3 border rounded-xl col-span-2" placeholder="رقم الإعلان (اختياري للإضافة/التعديل)">
+
+    <div class="grid grid-cols-2 gap-2">
+      <input id="ad_title" class="p-3 border rounded-xl col-span-2" placeholder="عنوان الإعلان">
+      <select id="ad_type" class="p-3 border rounded-xl">
+        <option value="">-- اختر نوع العقار --</option>
+        <option value="apartment">شقة</option>
+        <option value="villa">فيلا</option>
+        <option value="land">أرض</option>
+        <option value="shop">محل</option>
+      </select>
+
+      <select id="ad_tx" class="p-3 border rounded-xl">
+        <option value="sale">للبيع</option>
+        <option value="rent">للإيجار</option>
+      </select>
+
+      <select id="ad_area" class="p-3 border rounded-xl col-span-2">${areaOpts}</select>
+      <input id="ad_price" type="number" class="p-3 border rounded-xl" placeholder="السعر">
+      <input id="ad_phone" class="p-3 border rounded-xl col-span-2" placeholder="07XXXXXXXX">
+      <input type="file" id="ad_images" multiple accept="image/*" class="p-3 border rounded-xl col-span-2">
+
+      <div id="apartmentFields" class="col-span-2 hidden">
+        <input id="ad_space" type="number" class="p-3 border rounded-xl" placeholder="المساحة م²">
+        <input id="ad_rooms" type="number" class="p-3 border rounded-xl" placeholder="عدد الغرف">
+        <input id="ad_bath" type="number" class="p-3 border rounded-xl" placeholder="عدد الحمامات">
+        <input id="ad_living" type="number" class="p-3 border rounded-xl" placeholder="صالة معيشة">
+        <input id="ad_floor" type="number" class="p-3 border rounded-xl" placeholder="عدد الطوابق">
+        <select id="ad_garage" class="p-3 border rounded-xl">
+          <option value="">كراج سيارة</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <select id="ad_elevator" class="p-3 border rounded-xl">
+          <option value="">مصعد</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <select id="ad_kitchen" class="p-3 border rounded-xl">
+          <option value="">مطبخ</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <select id="ad_balcony" class="p-3 border rounded-xl">
+          <option value="">بلكونة</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+      </div>
+
+      <div id="landFields" class="col-span-2 hidden">
+        <input id="ad_land_id" type="text" class="p-3 border rounded-xl" placeholder="رقم قطعة الأرض">
+        <input id="ad_mudiriyah" type="text" class="p-3 border rounded-xl" placeholder="المديرية">
+        <input id="ad_village" type="text" class="p-3 border rounded-xl" placeholder="القرية">
+        <input id="ad_hawd" type="text" class="p-3 border rounded-xl" placeholder="الحوض">
+        <input id="ad_land_space" type="number" class="p-3 border rounded-xl" placeholder="المساحة م²">
+        <select id="ad_land_organization" class="p-3 border rounded-xl">
+          <option value="">التنظيم</option>
+          <option value="residential">سكني</option>
+          <option value="commercial">تجاري</option>
+          <option value="agricultural">زراعي</option>
+          <option value="industrial">صناعي</option>
+          <option value="multiuse">متعدد الاستعمال</option>
+          <option value="outside">خارج التنظيم</option>
+        </select>
+        <div class="flex gap-2">
+          <label><input type="checkbox" class="resOption" value="A">سكن أ</label>
+          <label><input type="checkbox" class="resOption" value="B">سكن ب</label>
+          <label><input type="checkbox" class="resOption" value="C">سكن ج</label>
+          <label><input type="checkbox" class="resOption" value="D">سكن د</label>
+        </div>
+        <select id="ad_land_divided" class="p-3 border rounded-xl">
+          <option value="">مفروز</option>
+          <option value="yes">نعم</option>
+          <option value="no">لا</option>
+        </select>
+        <input id="ad_land_front" type="text" class="p-3 border rounded-xl" placeholder="الواجهة">
+        <input id="ad_streets_count" type="number" class="p-3 border rounded-xl" placeholder="عدد الشوارع">
+        <input id="ad_streets_width" type="text" class="p-3 border rounded-xl" placeholder="عرض الشوارع (م)">
+        <div class="flex gap-2">
+          <label><input type="checkbox" class="services" value="water">مياه</label>
+          <label><input type="checkbox" class="services" value="electricity">كهرباء</label>
+          <label><input type="checkbox" class="services" value="sewage">صرف صحي</label>
+        </div>
+      </div>
+
+      <div class="col-span-2 grid grid-cols-3 gap-2">
+        <input id="ad_lat" type="number" step="any" class="p-3 border rounded-xl" placeholder="Lat">
+        <input id="ad_lon" type="number" step="any" class="p-3 border rounded-xl" placeholder="Lon">
+        <button id="pickOnMap" class="p-3 border rounded-xl">التقاط من الخريطة</button>
+      </div>
+    </div>
+
+    <button id="applyModal" class="col-span-2 py-2 bg-emerald-600 text-white rounded-xl">تطبيق الإعلان</button>
+  </div>`;
+
+  openModal('إدارة الإعلانات', html);
+
+  const typeSelect = E('#ad_type');
+  const apartmentFields = E('#apartmentFields');
+  const landFields = E('#landFields');
+
+  typeSelect.addEventListener('change', () => {
+    if(typeSelect.value==='apartment' || typeSelect.value==='villa'){
+      apartmentFields.classList.remove('hidden');
+      landFields.classList.add('hidden');
+    } else if(typeSelect.value==='land'){
+      landFields.classList.remove('hidden');
+      apartmentFields.classList.add('hidden');
+    } else {
+      apartmentFields.classList.add('hidden');
+      landFields.classList.add('hidden');
+    }
+  });
+
+  E('#pickOnMap').onclick = () => {
+    const overlay = document.createElement('div');
+    overlay.style = 'position:fixed;top:0;left:0;width:100%;height:100%;background:white;z-index:9999;display:flex;flex-direction:column;';
+    overlay.innerHTML = `<div style="flex:1;" id="mapPicker"></div>
+    <div class="p-2 grid grid-cols-2 gap-2">
+      <button id="confirmLocation" class="p-2 bg-emerald-600 text-white rounded-xl">تأكيد الموقع</button>
+      <button id="closePicker" class="p-2 bg-slate-900 text-white rounded-xl">إلغاء</button>
+    </div>`;
+    document.body.appendChild(overlay);
+
+    const pickerMap = L.map('mapPicker').setView(AMMAN, 12);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', { maxZoom: 20 }).addTo(pickerMap);
+    let marker = null, lat, lon;
+    pickerMap.on('click', e => {
+      lat = e.latlng.lat.toFixed(6);
+      lon = e.latlng.lng.toFixed(6);
+      if(marker) pickerMap.removeLayer(marker);
+      marker = L.marker([lat, lon]).addTo(pickerMap);
+    });
+
+    E('#confirmLocation').onclick = () => {
+      if(lat && lon){
+        E('#ad_lat').value = lat;
+        E('#ad_lon').value = lon;
+        document.body.removeChild(overlay);
+        alert('تم تحديد الموقع.');
+      } else alert('اختر الموقع أولاً.');
+    };
+    E('#closePicker').onclick = () => document.body.removeChild(overlay);
+  };
+
+  // تطبيق الإعلان وحفظه
+  E('#applyModal').onclick = async () => {
+    const idField = E('#ad_id').value;
+    const isEdit = !!idField;
+    const newAd = {
+      id: isEdit ? Number(idField) : Date.now(),
+      title: E('#ad_title').value.trim(),
+      type: typeSelect.value,
+      tx: E('#ad_tx').value,
+      area: E('#ad_area').value,
+      price: Number(E('#ad_price').value||0),
+      lat: Number(E('#ad_lat').value),
+      lon: Number(E('#ad_lon').value),
+      phone: E('#ad_phone').value.trim(),
+      images: [],
+      createdAt: Date.now()
+    };
+
+    if(typeSelect.value==='apartment' || typeSelect.value==='villa'){
+      newAd.space = Number(E('#ad_space').value||0);
+      newAd.rooms = Number(E('#ad_rooms').value||0);
+      newAd.bath = Number(E('#ad_bath').value||0);
+      newAd.living = Number(E('#ad_living').value||0);
+      newAd.floor = Number(E('#ad_floor').value||0);
+      newAd.garage = E('#ad_garage').value;
+      newAd.elevator = E('#ad_elevator').value;
+      newAd.kitchen = E('#ad_kitchen').value;
+      newAd.balcony = E('#ad_balcony').value;
+    }
+
+    if(typeSelect.value==='land'){
+      newAd.land_id = E('#ad_land_id').value;
+      newAd.mudiriyah = E('#ad_mudiriyah').value;
+      newAd.village = E('#ad_village').value;
+      newAd.hawd = E('#ad_hawd').value;
+      newAd.space = Number(E('#ad_land_space').value||0);
+      newAd.organization = E('#ad_land_organization').value;
+      newAd.divided = E('#ad_land_divided').value;
+      newAd.front = E('#ad_land_front').value;
+      newAd.streets_count = Number(E('#ad_streets_count').value||0);
+      newAd.streets_width = E('#ad_streets_width').value;
+      newAd.resOptions = Array.from(document.querySelectorAll('.resOption:checked')).map(c=>c.value);
+      newAd.services = Array.from(document.querySelectorAll('.services:checked')).map(c=>c.value);
+    }
+
+    const files = E('#ad_images').files;
+    const formData = new FormData();
+    formData.append('ad', JSON.stringify(newAd));
+    for(let f of files) formData.append('images', f);
+
+    try {
+      const res = await fetch('http://localhost:3000/saveListing', { method:'POST', body: formData });
+      const data = await res.json();
+      if(data.success){
+        alert('تم إضافة الإعلان بنجاح');
+        loadAds(); // إعادة تحميل كل الإعلانات تلقائي
+      } else alert('خطأ بالحفظ');
+    } catch(err){ alert('خطأ بالسيرفر: '+err.message); }
+  };
+};
